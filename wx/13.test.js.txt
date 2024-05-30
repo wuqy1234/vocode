@@ -1,0 +1,5 @@
+const strgen = require('./13');
+test('generateRandomString', () => {
+    expect(strgen.generateRandomString(11)).toHaveLength(11);
+}
+)

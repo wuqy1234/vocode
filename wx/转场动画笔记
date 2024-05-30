@@ -1,0 +1,275 @@
+步骤一：定义路由动画
+定义路由动画的主要步骤是注册一个 builder 函数，来定义小程序页面间切换过程的动画过程。
+builder 函数接受的参数均为 sharedValue 类型，当路由事件发生时，Skyline 引擎会同步修改它们的值。
+开发者在 builder 函数中需要实现的是 handlePrimaryAnimation 和 handleSecondaryAnimation 这两个动画函数，
+当使用的 sharedValue 变化时，对应的 handlePrimaryAnimation / handleSecondaryAnimation 函数就会被执行。
+// 注册 builder 函数
+wx.router.addRouteBuilder("Cupertino", CupertinoRouteBuilder)
+//"Cupertino"自定义的名字,CupertinoRouteBuilder自定义的转场动画函数
+// 实现 builder 函数
+const CupertinoRouteBuilder = ({
+    //下面这些参数不需要自己传,当wx.router.addRouteBuilder("Cupertino", CupertinoRouteBuilder)运行时,
+    //那些参数将会直接传入
+    primaryAnimation,
+    secondaryAnimation, 
+    primaryAnimationStatus,
+    secondaryAnimationStatus, 
+    userGestureInProgress//手势进行中状态
+}) => {
+    // 实现 worklet 动画函数 handlePrimaryAnimation 、 handleSecondaryAnimation
+    const { windowWidth } = wx.getWindowInfo();
+    创建了两个动画,第一个动画给跳转的下一个页面,第二个动画给当前页面
+    const handlePrimaryAnimation = () => {
+        "worklet";
+        // primaryAnimation 是 builder 函数的参数
+        // windowWidth * (1 - primaryAnimation.value)宽度的变化,最后宽度为0
+        const translateX = windowWidth * (1 - primaryAnimation.value)
+        return {
+        transform: `translateX(${translateX}px)`//最后把这个动画return出去,渲染层就能执行
+        }
+    }
+    const handleSecondaryAnimation = ...
+    return {
+        //创建完两个动画后,再把两个动画return出去,其余的是配置信息,可填写,也可以不用填写.
+        handlePrimaryAnimation,
+        handleSecondaryAnimation,
+        opaque: true, 
+        transitionDuration: 300, 
+        reverseTransitionDuration: 300, 
+        barrierColor: "", 
+        barrierDismissible: false, 
+        barrierLabel: "", 
+        canTransitionTo: true, 
+        canTransitionFrom: true, 
+    }
+}
+
+
+
+
+
+  /*
+   * CurveAnimation 利用 derivedValue 机制
+   //CurveAnimation利用的是共享变量的机制,不过这个共享变量是另外一个derived函数需要return数据出去
+   //不然会报错,可以是单个字符串或数字,可以是对象,数组,数据是指基本类型的数据:数字,字符串,布尔值,数组,对象,等等
+   * 封装了进入和退出时的动画曲线
+   */
+   //return后返回derived()共享变量,此时就创建了一个共享变量
+  function CurveAnimation ({ animation, animationStatus, curve, reverseCurve }) {
+    const { derived } = wx.worklet;
+    return derived(() => {
+      'worklet';
+      const useForwardCurve = !reverseCurve || animationStatus.value !== AnimationStatus.reverse;
+      const activeCurve = useForwardCurve ? curve : reverseCurve;//决定使用哪一个贝塞尔曲线
+      const t = animation.value;//动画状态[0,1]
+      if (!activeCurve) return t;//判断动画状态来决定返回哪一个状态
+      if (t === 0 || t === 1) return t;
+      return activeCurve(t);//动画在活动中是给曲线传入参数,这个参数是用来控制进度的吗?????????????????????????
+    });
+  }
+
+
+  /**
+   * worklet 支持了常见的动画缓动函数
+   * 示例使用 bezier 三次贝塞尔曲线
+   */
+    const Curves = {};
+  if (wx.worklet) {
+    const { Easing } = wx.worklet;
+    Object.assign(Curves, {
+      fastLinearToSlowEaseIn: Easing.cubicBezier(0.18, 1.0, 0.04, 1.0),
+      linearToEaseOut: Easing.cubicBezier(0.35, 0.91, 0.33, 0.97),
+      easeInToLinear: Easing.cubicBezier(0.67, 0.03, 0.65, 0.09),
+      fastOutSlowIn: Easing.cubicBezier(0.4, 0.0, 0.2, 1.0),
+    });
+  }
+
+
+    const { windowWidth } = wx.getWindowInfo();
+  const _curvePrimaryAnimation = CurveAnimation({//创建了一个共享变量
+    animation: primaryAnimation, // builder 函数入参,接收了一个自定义的转场动画
+    animationStatus: primaryAnimationStatus, // builder 函数入参,接收了一个自定义的转场动画
+    curve: Curves.linearToEaseOut,//进入时的贝塞尔曲线
+    reverseCurve: Curves.easeInToLinear,//退出时的贝塞尔曲线
+  });//最后_curvePrimaryAnimation常量一定会添加入监听共享变量的函数中,比如:applyAnimatedStyle()
+  //handlePrimaryAnimation 和 handleSecondaryAnimation 返回 AnimatedStyle，它们的作用跟 this.applyAnimaedStyle 接口是一样，只不过作用于页面的 “根” 节点。
+  //wx.router.addRouteBuilder函数执行动画,和this.applyAnimaedStyle函数一样
+
+
+
+   /**
+   * primaryAnimation 控制页面进入和退出动画
+   * 1. 页面进入时采用 curve 曲线生成的值
+   * 2. 页面退出时采用 reverseCurve 生成的值
+   */
+  const handlePrimaryAnimation = () => {//这个函数会入参wx.router.addRouteBuilder(动画名字,动画效果),
+  //只有wx.router.addRouteBuilder创建了,就能 wx.router.getRouteContext,只有创建了路由,才能获取路由的上下文
+    "worklet";
+    let t = primaryAnimation.value;// CurveAnimation函数中是用primaryAnimation.value状态值来判断
+    if (!userGestureInProgress.value) {//手势进行中状态,是一直变化的
+      t = _curvePrimaryAnimation.value;//用手势的状态来更新_curvePrimaryAnimation常量,从而让监测常量变的动画函数触发
+    }
+
+    const translateX = windowWidth * (1 - t)//t的值[0,1],屏幕宽度的变化
+    return {
+      transform: `translateX(${translateX}px)`//返回这个动画,将会被wx.router.addRouteBuilder函数执行动画,和this.applyAnimaedStyle函数一样
+    };
+  };
+
+
+  步骤二：页面跳转时指定路由类型
+// 低版本基础库会降级到多 webview 下的路由动画
+wx.navigateTo({
+  url: 'pageB',
+  routeType: 'Cupertino',wx.router.addRouteBuilder(动画名字,动画效果)中的动画名字,此时就有转场动画了
+})
+
+
+步骤三：绑定页面手势
+通常我们会在页面上绑定手势，除了用户点击按钮返回外，还可以向右、向下拖动页面返回。此时就需要在页面内绑定手势进行处理。
+
+绑定手势之后，根据 GestureState 状态值来接管页面动画，手势事件 this.customRouteContext 包含当前页面定义路由 builder 时的全部变量。
+
+在手势事件中根据手势来修改 primaryAnimation 的值实现页面手势动画。
+
+//修改primaryAnimation的value来实现动画交互
+
+
+手势接管开始必需调用 startUserGesture，手势结束必须调用 stopUserGesture，退出页面必须调用 didPop。
+
+Skyline 引擎无法内部处理掉这些调用，原因是引擎无法得知开发者最终是否想退出这个页面。
+startUserGesture	function	开始页面手势事件，更新 userGesturelnProgress 值为 1
+stopUserGesture	function	结束页面手势事件，更新 userGesturelnProgress 值为 0
+
+
+
+<!-- absolute 定位到页面左侧的返回条，在上面滑动时可以控制页面路由动画 -->
+<horizontal-drag-gesture-handler onGestureEvent="handleHorizontalDrag">
+  <view class="gesture-back-area"></view>
+<horizontal-drag-gesture-handler/>
+
+/**
+ * 1. customRouteContext 中包含当前页面定义路由 builder(建立) 时的全部变量
+ * 2. 可以从中获取 primaryAnimation，对其进行修改，进而驱动页面动画
+ * 3. 手势返回时由开发者控制 primaryAnimation 的更新
+ * 4. 接口调用页面进入和退出时，由 skyline 引擎控制 primaryAnimation 的更新
+ */
+
+ Page({
+  _handleDragStart() {
+    "worklet";
+    const { startUserGesture } = this.customRouteContext;
+    // 触摸开始时需要调用 startUserGesture
+    // 更新 userGestureInProgress 的值
+    // ⚠️⚠️ 
+    startUserGesture();
+  },
+
+  _handleDragUpdate(delta) {
+    "worklet";
+    const { primaryAnimation } = this.customRouteContext;
+    const newVal = primaryAnimation.value - delta;
+    // 跟随手指拖动页面效果
+    primaryAnimation.value = clamp(newVal, 0.0, 1.0);
+  },
+
+    _handleDragEnd(velocity) {
+    "worklet";
+    const { primaryAnimation, stopUserGesture, didPop } =
+      this.customRouteContext;
+
+    // 页面滑动超过一半或者手指离开时的释放速度大于指定值时
+    // 判定最终要退出页面，继续滑动页面到右侧边缘
+    // 否则判定取消此时退出，页面返回到左侧边缘
+    let animateForward = false;
+    if (Math.abs(velocity) >= _kMinFlingVelocity) {
+      animateForward = velocity <= 0;
+    } else {
+      animateForward = primaryAnimation.value > 0.5;
+    }
+    const t = primaryAnimation.value;
+    const animationCurve = Curves.fastLinearToSlowEaseIn;
+    if (animateForward) {
+      const droppedPageForwardAnimationTime = Math.min(
+        Math.floor(lerp(_kMaxDroppedSwipePageForwardAnimationTime, 0, t)),
+        _kMaxPageBackAnimationTime
+      );
+       // primaryAnimation.vaue = 1 表示未退出页面
+      primaryAnimation.value = timing(
+        1.0,
+        {
+          duration: droppedPageForwardAnimationTime,
+          easing: animationCurve,
+        },
+        () => {
+          // 最终均需调用 stopUserGesture
+          // ⚠️⚠️ 
+          stopUserGesture();
+        }
+      );
+    } else {
+      const droppedPageBackAnimationTime = Math.floor(
+        lerp(0, _kMaxDroppedSwipePageForwardAnimationTime, t)
+      );
+      // primaryAnimation.vaue = 0 表示退出页面
+      primaryAnimation.value = timing(
+        0.0,
+        {
+          duration: droppedPageBackAnimationTime,
+          easing: animationCurve,
+        },
+        () => {
+          // 退出页面时需调用 didPop
+          // ⚠️⚠️
+          didPop();
+
+          // 最终均需调用 stopUserGesture
+          // ⚠️⚠️
+          stopUserGesture();
+        }
+      );
+    }
+  },
+
+ handleHorizontalDrag(gestureEvent) {
+    "worklet";
+    if (gestureEvent.state === GestureState.BEGIN) {
+      this.handleDragStart();
+    } else if (gestureEvent.state === GestureState.ACTIVE) {
+      const delta = gestureEvent.deltaX / windowWidth;
+      this.handleDragUpdate(delta);
+    } else if (gestureEvent.state === GestureState.END) {
+      const velocity = gestureEvent.velocityX / windowWidth;
+      this.handleDragEnd(velocity);
+    } else if (gestureEvent.state === GestureState.CANCELLED) {
+      this.handleDragEnd(0.0);
+    }
+  }
+})
+
+
+当前页面栈顶为 PageA，当调用 wx.navigateTo 推入 PageB 时:
+
+PageA 对应的 secondaryAnimation 从 0.0 -> 1.0，PageB 的 primaryAnimation 从 0.0 -> 1.0
+此时页面栈顶变为 PageB，当调用 wx.navigateBack 推出 PageB时:
+
+PageA 对应的 secondaryAnimation 从 1.0 -> 0.0，PageB 的 primaryAnimation 从 1.0 -> 0.0
+
+//primaryAnimation	sharedValue	页面进入和退出时的动画进度，取值：0 - 1//指准备展现的页面的进入和退出的进度
+//secondaryAnimation	sharedValue	下一个页面进入和退出时，当前页面的动画进度，0-1//指之前的页面的进入和退出的进度
+
+//理解:主要的动画是 primaryAnimation,即需要进入的下一个页面呈现的转场动画,
+//secondaryAnimation是当前页面准备退出的动画
+
+
+
+//说得更明白点,假如从A页面进入下一个页面B页面,那么primaryAnimation是B页面的动画,secondaryAnimation是A页面的动画.
+
+//最清楚的理解:主场动画是指A页进入B页,过程中出现的动画,作用于两个页面,次场动画是指当前主场动画执行时,A页面出现的动画
+
+
+
+
+
+
+
