@@ -27,7 +27,7 @@ test('集成测试 测试：生成测试代码文件', () => {
 
         //rmdirSync删除，remove，/data/__test__目录下的文件和文件夹都会被删除
         //同时__test__文件夹也会被删除。recursive: true 表示递归删除。
-        fs.rmdirSync(__dirname + '/data/__test__', { recursive: true });
+        // fs.rmdirSync(__dirname + '/data/__test__', { recursive: true });
 
     }
     //导入方法 

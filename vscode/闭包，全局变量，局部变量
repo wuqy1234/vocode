@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<script>
+"use strict";
+let aa=0
+function makeCounter() {
+  let count = 0;
+
+  return function() {
+   
+    return [count++, aa++];
+  };
+}
+
+let counter = makeCounter();
+let bb= makeCounter();
+alert( counter() ); // 0
+alert( counter() ); // 1
+alert( counter() ); // 2
+alert( bb() );
+</script>

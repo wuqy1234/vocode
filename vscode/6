@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<script>
+    "use strict";
+
+    function defer(f, ms) {
+        return function (...args) {
+            let ctx = this;// 这一行并不是程序运行所必需的，
+            // 而是为了在特定场景下正确地传递和使用上下文（即this值）。
+            setTimeout(function () {
+                return f.apply(ctx, args);
+            }, ms);
+        };
+    }
+
+    function sayHi(who) {
+        alert('Hello, ' + who);
+    }
+
+    let sayHiDeferred = defer(sayHi, 2000);
+    sayHiDeferred("John");
+
+
+
+
+
+</script>

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<script>
+    "use strict";
+
+    let group = {
+        title: "Our Group",
+        students: ["John", "Pete", "Alice"],
+
+        showList() {//没有运行的函数就不会创建词法环境，所以就没有this值的属性，
+            //因为箭头函数没有this，使用this会指向对象group。如果是正常的函数，
+            //那么运行的时候，运行了两个函数，一个是foreach和其内部的正常函数，
+            //那么this的指向会是foreach，函数的this值默认是undefined。this和var
+            //一样，只能穿透一层大括号{}。
+            this.students.forEach(
+                student => alert(this.title + ': ' + student)
+            );
+        }
+    };
+
+    group.showList();
+</script>

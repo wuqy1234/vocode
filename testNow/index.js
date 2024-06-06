@@ -50,7 +50,11 @@ module.exports = class testNow {
  */
     getTestSource(methodName, classFilePath, isClass = false) {
         // 根据是否是类方法，动态构造测试代码字符串
-        return `test('${'TEST ' + methodName}',()=>{const ${isClass ? '{' + methodName + '}' : methodName} =require('${'../' + classFilePath}');const ret = ${methodName}();//expect(ret).toBe('test return');
+        return `
+        test('${'TEST ' + methodName}',()=>{
+            const ${isClass ? '{' + methodName + '}' : methodName} =require('${'../' + classFilePath}');
+            const ret = ${methodName}();
+            //expect(ret).toBe('test return');
     })`
     }
 
