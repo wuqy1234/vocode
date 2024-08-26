@@ -15,9 +15,6 @@ function push(array: any[], ...items: any[]) {
     return array;
 }
 
-let a = [];
-
-console.log(push(a, 1, 2, 3));
 
 function reverse1(x: number | string): number | string | void {
     if (typeof x === 'number') {
@@ -36,3 +33,5 @@ function reverse(x: number | string): number | string | void {
         return x.split('').reverse().join('');
     }
 }
+
+let hello:string

@@ -1,18 +1,4 @@
-var __extends = (this && this.__extends) || (function () {
-    var extendStatics = function (d, b) {
-        extendStatics = Object.setPrototypeOf ||
-            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-            function (d, b) { for (var p in b) if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p]; };
-        return extendStatics(d, b);
-    };
-    return function (d, b) {
-        if (typeof b !== "function" && b !== null)
-            throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-})();
+"use strict";
 //访问共同属性不会出错
 function getName(animal) {
     return animal.name;
@@ -23,9 +9,9 @@ function isFish(animal) {
     }
     return false;
 }
-var tom = {
+const tom = {
     name: 'Tom',
-    run: function () { console.log('run'); }
+    run() { console.log('run'); }
 };
 function swim(animal) {
     animal.swim();
@@ -33,24 +19,18 @@ function swim(animal) {
 //上面的例子编译时不会报错，但在运行时会报错
 // swim(tom);
 ////////////////////////////////////////////////////////////////
-var ApiError = /** @class */ (function (_super) {
-    __extends(ApiError, _super);
-    function ApiError() {
-        var _this = _super !== null && _super.apply(this, arguments) || this;
-        _this.code = 0;
-        return _this;
+class ApiError extends Error {
+    constructor() {
+        super(...arguments);
+        this.code = 0;
     }
-    return ApiError;
-}(Error));
-var HttpError = /** @class */ (function (_super) {
-    __extends(HttpError, _super);
-    function HttpError() {
-        var _this = _super !== null && _super.apply(this, arguments) || this;
-        _this.statusCode = 200;
-        return _this;
+}
+class HttpError extends Error {
+    constructor() {
+        super(...arguments);
+        this.statusCode = 200;
     }
-    return HttpError;
-}(Error));
+}
 function isApiError(error) {
     if (typeof error.code === 'number') {
         return true;
@@ -68,18 +48,18 @@ function isApiError1(error) {
 function getCacheData(key) {
     return window.cache[key];
 }
-var tom1 = getCacheData('tom');
+const tom1 = getCacheData('tom');
 tom1.run();
-var tom2 = {
+let tom2 = {
     name: 'Tom',
-    run: function () { console.log('run'); }
+    run: () => { console.log('run'); }
 };
-var animal = tom2;
-var tom3 = {
+let animal = tom2;
+let tom3 = {
     name: 'Tom',
-    run: function () { console.log('run'); }
+    run: () => { console.log('run'); }
 };
-var animal1 = tom3;
+let animal1 = tom3;
 function testAnimal(animal) {
     return animal.run();
 }
@@ -100,21 +80,21 @@ toBoolean(1);
 function getCacheData1(key) {
     return window.cache[key];
 }
-var tom4 = getCacheData1('tom');
+const tom4 = getCacheData1('tom');
 tom4.run();
 //////////////////////////////////////////////////////////
 function getCacheData2(key) {
     return window.cache[key];
 }
-var tom5 = getCacheData2('tom');
+let tom5 = getCacheData2('tom');
 tom5.run();
-var aa = {
+let aa = {
     name: "bob",
-    run: function () { },
+    run() { },
 };
 tom5 = {
     name: "bob",
-    run: function () { },
+    run() { },
 };
 //在aa赋值后,其他类型变量引用aa就会报错
 //让tom5 = aa;会报错,因为两者的接口不一致
@@ -122,12 +102,12 @@ tom5 = {
 ////////////////////////////////////////////////////
 //使用了空接口的变量，其他类型变量引用该变量就会报错,但是可以通过断言来解决。
 //断言哪个接口,那么就能使用哪个接口中的属性和方法了
-var bb = getCacheData2('tom');
-var animal3 = {
+let bb = getCacheData2('tom');
+const animal3 = {
     name: 'tom'
 };
 // let tom6 = animal3 ;tom没有确定类型,所以会类型推断为animal3
-var tom6 = animal3; //这里是改变了tom6的类型,所以可以调用run方法
+let tom6 = animal3; //这里是改变了tom6的类型,所以可以调用run方法
 tom6.run();
 //父集可以断言为子集,然后可以调用子集的方法,子集可以断言为父集后,只能使用父集的方法和属性
 // const animal3: Cat = {
@@ -140,5 +120,5 @@ tom6.run();
 function getCacheData4(key) {
     return window.cache[key];
 }
-var tom7 = getCacheData4('tom');
+const tom7 = getCacheData4('tom');
 tom.run();
